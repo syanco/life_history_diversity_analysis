@@ -8,30 +8,45 @@ output: pdf_document
 # Initialization
 
 Load required libraries
-```{r}
+```{r messages = F}
+#data tools
 library(data.table)
 library(tidyverse)
+library(R.matlab)
+
+#plotting tools
 library(ggridges)
 library(wesanderson)
 library(reshape2)
 library(viridis)
+library(cowplot)
+library(ggthemes)
 ```
 
-Required source code from GAEMM
+Required source code from GAEMM.  *IMPORTANT NOTE*: The paths in the chunk below are relative to my personal repository structure - the GAEMM repository must first be cloned from github (https://github.com/allipierce/GAEMM) and then the file paths below modified to wherever it's been downloaded.  Eventually GAEMM will be made into a package that cn be installed directly and loaded using the `library()` command.
 ```{r}
-source("R/expendenergy.R")
-source("R/move.R")
-source("R/reproduce.R")
-source("R/randomizetraits.R")
-source("R/GAEMM.R")
-source("R/seasonalworld.R")
-source("R/results_functions.R")
+#source code for GAEMM 
+source("../../GAEMM/R/expendenergy.R")
+source("../../GAEMM/R/move.R")
+source("../../GAEMM/R/reproduce.R")
+source("../../GAEMM/R/randomizetraits.R")
+source("../../GAEMM/R/GAEMM.R")
+source("../../GAEMM/R/seasonalworld.R")
+source("../../GAEMM/R/results_functions.R")
+
+#source code for ggplot themes
+source("../../ggplot_theme_Publication-master/ggplot_theme_Publication-master/R/ggplot_theme_Publication.R")
+
+#source code for AmP accessor functions
+source("AmP_functions.R")
 ```
 
 
-# Model Runs
+# Theoretical Model
 
-## High Seasonality: Loc=175
+## Model Runs
+
+### High Seasonality: Loc=175
 
 Set model parameters
 ```{r}
@@ -66,11 +81,11 @@ Run model
 totalresults_175 <- GAEMM(modelparams_175, world_175, lastonly = T)
 ```
 
-## Moderate Seasonality: Loc=133
+### Moderate Seasonality: Loc=133
 
 Set model parameters
 ```{r}
-modelparams_175 <- list(worldsize = 181,
+modelparams_133 <- list(worldsize = 181,
                     popsize = 10000,
                     steps = 365,
                     generations = 500,
@@ -101,11 +116,11 @@ Run model
 totalresults_133 <- GAEMM(modelparams_133, world_133, lastonly = T)
 ```
 
-## No Seasonality: Loc=91
+### No Seasonality: Loc=91
 
 Set model parameters
 ```{r}
-modelparams_175 <- list(worldsize = 181,
+modelparams_91 <- list(worldsize = 181,
                     popsize = 10000,
                     steps = 365,
                     generations = 500,
@@ -137,7 +152,7 @@ totalresults_91 <- GAEMM(modelparams_91, world_91, lastonly = T)
 ```
 
 
-#Process Data
+## Process Data
 
 First filter raw model output to include only "alive" solutions and those that have been evaluated in at least one generation, also remove entirely identical solutions
 
@@ -162,13 +177,19 @@ comb <- rbind(filt_91, filt_133, filt_175)
 comb$startloc <- as.factor(comb$startloc)
 ```
 
-Save out data file
+Save out data files - note the relative filepath outside the git repository - may need to be adjusted depending on needs/personal preferences.
+
+We save the filtered, combined object; unfiltered model results; parameterization objects; and, worlds.
 ```{r}
-filename <- paste0("data_nomove_",Sys.Date(),".rdata")
-save(comb, file = filename)
+filename <- paste0("../data/data_nomove_",Sys.Date(),".rdata")
+save(comb, 
+     modelparams_91, modelparams_133, modelparams_175,
+     totalresults_91, totalresults_133, totalresults_175,
+     world_91, world_133, world_175, 
+     file = filename)
 ```
 
-Make df of world for plotting and dreduce to only locations used
+Make df of world for plotting and reduce to only locations used
 ```{r}
 #uses world_175 but could use any since word params are identical across treatments
 worlddf <- melt(world_175, varnames = c("step", "location"))
@@ -182,9 +203,50 @@ worlddf_starts$location <- as.factor(worlddf_starts$location)
 worlddf_starts$location <- fct_relevel(worlddf_starts$location, "91", "133", "175")
 ```
 
+# Empirical Analysis
+
+Load in the Add-my-Pet (AmP) database.
+```{r}
+deb <- readMat("../data/AmPdata/allStat.mat")
+```
+
+Extract desired variables into data.frame object.
+
+```{r}
+#pull species list over which to iterate accessor functions
+splist <- unlist(labels(deb$allStat))
+splist <- splist[1:(length(splist)-2)] #remove last two entries which are not species
+
+#extract ecoCode vector
+eco <- lapply(splist, getPar, par = "ecoCode", deb_data = deb)
+
+deb_df <- data.frame(model = unlist(lapply(splist, getPar, par ="model", deb_data = deb)), #which version of DEB model
+                      complete = unlist(lapply(splist, getPar, par ="COMPLETE", deb_data = deb)), #model completeness score                      
+                      climate = unlist(lapply(eco, getPrimeClim)), #primary climate code
+                      climate_full = unlist(lapply(eco, getClim)), #full climate code
+                      class = unlist(lapply(splist, getPar, par ="class", deb_data = deb)), #taxonomic class
+                      family = unlist(lapply(splist, getPar, par ="family", deb_data = deb)), #taxonomic family
+                      phylum = unlist(lapply(splist, getPar, par ="phylum", deb_data = deb)), #taxonomic phylum
+                      mig = unlist(lapply(eco, getMig)), #migratory status
+                      max_l = unlist(lapply(splist, getPar, par ="L.m", deb_data = deb)), #max length
+                      E_0 = unlist(lapply(splist, getPar, par ="E.0", deb_data = deb)), #embryo cost
+                      z = unlist(lapply(splist, getPar, par ="z", deb_data = deb)), #zoom factor
+                      kappa = unlist(lapply(splist, getPar, par = "kap", deb_data = deb)), #somatic allocation fraction (kappa)
+                      k = unlist(lapply(splist, getPar, par ="k", deb_data = deb)), #maintenance ratio (k)
+                      g = unlist(lapply(splist, getPar, par ="g", deb_data = deb)), #energy investment ratio (g)
+                      v=unlist(lapply(splist, getPar, par ="v", deb_data = deb))) #energy conductance (v)
+```
+
+Filter data:  remove marine species, use chordata only, only the 'std' DEB model with completeness >=2.
+```{r}
+deb_df_filt <- deb_df %>%
+  filter(climate != "M" & model == "std" & complete >= 2 & phylum == "Chordata")
+```
+
+
 #Plotting and Analysis
 
-## Figure 1 - Experiemntal Design Heuristic
+## Figure 1 - Experimental Design Heuristic
 
 Making a plot of the seasonal fluctuations in resources over time for each location treatment.
 
@@ -200,21 +262,157 @@ Make a plot of experimental design wrt the world
 
 ```{r}
 #set palette
-pal1 <- wes_palette("Darjeeling1", 3)
+pal_3 <- wes_palette("Darjeeling1", 3)
 
 (worldplot <- ggplot() +
-  geom_line(data = worlddf_starts,
-            aes(x=step, y = value, group=location, color = location), 
-            size = 2) +
-  geom_segment(data = worldmeans,
-             aes(y = meanf, x = 0, yend = meanf, xend = 365, color = location),
-             size = 1.5, linetype = "twodash") +
-  scale_color_manual(values = pal1, name = "Model Latitude") +
-  xlab("Time Step") +
-  ylab("Available Resources") +
-  theme_minimal())
+    geom_line(data = worlddf_starts,
+              aes(x=step, y = value, group=location, color = location), 
+              size = 1.5) +
+    geom_segment(data = worldmeans,
+                 aes(y = meanf, x = 0, yend = meanf, xend = 365, color = location),
+                 size = 1, linetype = "twodash") +
+    scale_color_manual(values = pal_3, name = "Model Latitude") +
+    ylim(c(0,1)) +
+    xlab("Time Step") +
+    ylab("Available Resources") +
+    theme_Publication() +
+    theme(legend.position = "none"))
+```
+
+## Figure 2 - Model Results
+
+Make 2 panel plot of model results for kappa (somatic allocation fraction) and g (energy investment ratio)
+
+### Somatic allocation fraction (kappa) panel
+```{r}
+(plot_kappa <- ggplot(comb, aes(y=startloc, x = kappa, color = startloc)) +
+   geom_jitter(alpha = 0.7) +
+   # scale_fill_viridis(name = "Kappa") +
+   scale_color_manual(values = pal_3) + #use same palette as worldplot
+   scale_discrete_manual(aesthetics="point_color", values = pal_3) +
+   # geom_smooth(method = "lm") +
+   xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
+   ylab("Latitude") +
+   # scale_point_fill_hue(l = 70) +
+   theme_Publication()+
+   theme(legend.position = "none"))
+```
+### Energy investment ratio (g) panel
+```{r}
+(plot_g <- ggplot(comb, aes(y=startloc, x = g,color = startloc)) +
+  geom_jitter(alpha = 0.7) +
+  scale_color_manual(values = pal_3) +
+  scale_discrete_manual(aesthetics="point_color", values = pal_3) +
+  xlab(expression(paste("Energy Investment Ratio (", g, ")"))) +
+  ylab("Latitude") +
+  theme_Publication()+
+  theme(legend.position = "none"))
+```
+### Combine into single panel
+
+```{r}
+(fig2_comb <- plot_grid(plot_kappa, plot_g, labels = c("A", "B"), ncol = 1))
+```
+
+## Figure 3 - Empirical patterns from AmP
+
+Set 5 color palette.
+```{r}
+pal_5 <- wes_palette("Darjeeling1", 5)
+```
+
+Three panel figure including kappa, g, and v.
+
+### Somatic Allocation fraction (kappa) panel
+
+```{r}
+(amp_kap <- ggplot(deb_df_filt, aes(y=climate, x = kappa, color = climate)) +
+   geom_jitter(alpha = 0.5) +
+   scale_color_manual(values = pal_5) +
+   scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
+   xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
+   ylab("") +
+   theme_Publication() +
+   theme(legend.position = "none"))
+```
+
+### Energy conductance (v) panel
+
+```{r}
+(amp_v <- ggplot(deb_df_filt, aes(y=climate, x = v, color = climate)) +
+   geom_jitter(alpha = 0.5) +
+   scale_color_manual(values = pal_5) +
+   scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
+   xlab(expression(paste("Energy Conductance (", italic(dot(v)), ")"))) +
+   ylab("") +
+   theme_Publication() +
+   theme(legend.position = "none"))
+```
+
+### Energy investment ratio (g) panel
+
+```{r}
+(amp_g <- ggplot(deb_df_filt, aes(y=climate, x = g, color = climate)) +
+  geom_jitter(alpha = 0.5) +
+  scale_color_manual(values = pal_5) +
+  scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
+  xlab(expression(paste("Energy Investment Ratio (g)"))) +
+  ylab("") +
+  theme_Publication() +
+  theme(legend.position = "none"))
+```
+
+### Energy investment ratio (g) by kappa panel
+
+```{r}
+clim_labs <- c("Tropical", "Dry", "Temperate", "Boreal", "Polar")
+names(clim_labs) <- c("A", "B", "C", "D", "E")
+
+deb_df_filt$climate_relev <- fct_relevel(deb_df_filt$climate, "E", "D", "C", "B", "A")
+
+(amp_g.kap <- ggplot(deb_df_filt, aes(y=g, x = kappa, color = climate)) +
+    geom_point(alpha = 0.5) +
+    scale_color_manual(values = pal_5) +
+    # scale_(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
+    xlab(expression(paste(kappa))) +
+    ylab(expression(paste("Energy Investment Ratio (g)"))) +
+    theme_Publication() +
+    theme(legend.position = "none") +
+    facet_wrap(~climate_relev, ncol = 1, labeller = labeller(climate_relev = clim_labs)))
+```
+
+###Combine
+```{r}
+fig3_left <- plot_grid(amp_kap, amp_g, amp_v, labels = "AUTO", ncol = 1)
+(fig3_comb <- plot_grid(fig3_left, amp_g.kap, labels = c("", "D"), ncol = 2, rel_widths = c(2,1)))
 ```
 
 # Save Plots
 
 Save Figure 1
+```{r}
+#as pdf
+ggsave("../figures/fig-1_seasons.pdf", worldplot, width = 7, height = 4)
+
+#as png
+ggsave("../figures/fig-1_seasons.png", worldplot, width = 7, height = 4)
+```
+
+Save Figure 2
+```{r}
+#as pdf
+ggsave("../figures/fig-2_model.pdf", fig2_comb, width = 7, height = 6)
+
+#as png
+ggsave("../figures/fig-2_model.png", fig2_comb, width = 7, height = 6)
+```
+
+Save Figure 3
+```{r}
+#as pdf
+ggsave("../figures/fig-3_AmP.pdf", fig3_comb, width = 7, height = 7)
+
+#as png
+ggsave("../figures/fig-3_AmP.png", fig3_comb, width = 7, height = 7)
+```
+
