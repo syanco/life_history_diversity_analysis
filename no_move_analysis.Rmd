@@ -1,0 +1,220 @@
+---
+title: "seasonality_and_LH"
+author: "Scott Yanco"
+date: "9/23/2020"
+output: pdf_document
+---
+
+# Initialization
+
+Load required libraries
+```{r}
+library(data.table)
+library(tidyverse)
+library(ggridges)
+library(wesanderson)
+library(reshape2)
+library(viridis)
+```
+
+Required source code from GAEMM
+```{r}
+source("R/expendenergy.R")
+source("R/move.R")
+source("R/reproduce.R")
+source("R/randomizetraits.R")
+source("R/GAEMM.R")
+source("R/seasonalworld.R")
+source("R/results_functions.R")
+```
+
+
+# Model Runs
+
+## High Seasonality: Loc=175
+
+Set model parameters
+```{r}
+modelparams_175 <- list(worldsize = 181,
+                    popsize = 10000,
+                    steps = 365,
+                    generations = 500,
+                    g_max = 150,
+                    l_p = 0.7,
+                    kappa_min = 0.1,
+                    kappa_max = 0.9999,
+                    maxmoves = 45,
+                    e_traits = c("g", "kappa", "m"),
+                    startloc = 175,
+                    replacerate = 0.8,
+                    crossoverrate = 0.5,
+                    mutationrate = 0.1,
+                    selectiontype = "sus",
+                    worldedge = "stop",
+                    ncrosspoints = 2,
+                    movement = F,
+                    fillfirst = T)
+```
+
+Make the seasonal world - uses model params object, but world will be identical across treatments
+```{r}
+world_175 <- make_seasonalworld(modelparams_175, type = "sine", meanrange = c(0.7,0.85))
+```
+
+Run model
+```{r}
+totalresults_175 <- GAEMM(modelparams_175, world_175, lastonly = T)
+```
+
+## Moderate Seasonality: Loc=133
+
+Set model parameters
+```{r}
+modelparams_175 <- list(worldsize = 181,
+                    popsize = 10000,
+                    steps = 365,
+                    generations = 500,
+                    g_max = 150,
+                    l_p = 0.7,
+                    kappa_min = 0.1,
+                    kappa_max = 0.9999,
+                    maxmoves = 45,
+                    e_traits = c("g", "kappa", "m"),
+                    startloc = 133,
+                    replacerate = 0.8,
+                    crossoverrate = 0.5,
+                    mutationrate = 0.1,
+                    selectiontype = "sus",
+                    worldedge = "stop",
+                    ncrosspoints = 2,
+                    movement = F,
+                    fillfirst = T)
+```
+
+Make the seasonal world - uses model params object, but world will be identical across treatments
+```{r}
+world_133 <- make_seasonalworld(modelparams_133, type = "sine", meanrange = c(0.7,0.85))
+```
+
+Run model
+```{r}
+totalresults_133 <- GAEMM(modelparams_133, world_133, lastonly = T)
+```
+
+## No Seasonality: Loc=91
+
+Set model parameters
+```{r}
+modelparams_175 <- list(worldsize = 181,
+                    popsize = 10000,
+                    steps = 365,
+                    generations = 500,
+                    g_max = 150,
+                    l_p = 0.7,
+                    kappa_min = 0.1,
+                    kappa_max = 0.9999,
+                    maxmoves = 45,
+                    e_traits = c("g", "kappa", "m"),
+                    startloc = 91,
+                    replacerate = 0.8,
+                    crossoverrate = 0.5,
+                    mutationrate = 0.1,
+                    selectiontype = "sus",
+                    worldedge = "stop",
+                    ncrosspoints = 2,
+                    movement = F,
+                    fillfirst = T)
+```
+
+Make the seasonal world - uses model params object, but world will be identical across treatments
+```{r}
+world_91 <- make_seasonalworld(modelparams_91, type = "sine", meanrange = c(0.7,0.85))
+```
+
+Run model
+```{r}
+totalresults_91 <- GAEMM(modelparams_91, world_91, lastonly = T)
+```
+
+
+#Process Data
+
+First filter raw model output to include only "alive" solutions and those that have been evaluated in at least one generation, also remove entirely identical solutions
+
+```{r}
+filt_175 <- totalresults_175 %>%
+  filter(alive == T & age > 1) %>% #remove dead and unevaluated solutions
+  distinct() #remove complete duplicated solutions
+
+filt_133 <- totalresults_133 %>%
+  filter(alive == T & age > 1) %>% #remove dead and unevaluated solutions
+  distinct() #remove complete duplicated solutions
+
+filt_91 <- totalresults_91 %>%
+  filter(alive == T & age > 1) %>% #remove dead and unevaluated solutions
+  distinct() #remove complete duplicated solutions
+```
+
+  
+Combine datasets into single df with start as a factor
+```{r}
+comb <- rbind(filt_91, filt_133, filt_175)
+comb$startloc <- as.factor(comb$startloc)
+```
+
+Save out data file
+```{r}
+filename <- paste0("data_nomove_",Sys.Date(),".rdata")
+save(comb, file = filename)
+```
+
+Make df of world for plotting and dreduce to only locations used
+```{r}
+#uses world_175 but could use any since word params are identical across treatments
+worlddf <- melt(world_175, varnames = c("step", "location"))
+
+#filter to only treatment locations
+worlddf_starts <- worlddf %>% 
+  filter(location==91|location==133|location==175)
+
+#convert starts to factor variable and reorder
+worlddf_starts$location <- as.factor(worlddf_starts$location)
+worlddf_starts$location <- fct_relevel(worlddf_starts$location, "91", "133", "175")
+```
+
+#Plotting and Analysis
+
+## Figure 1 - Experiemntal Design Heuristic
+
+Making a plot of the seasonal fluctuations in resources over time for each location treatment.
+
+First calculate annual mean resource levels for each location (except 91, since raw resources == mean resources).
+```{r}
+worldmeans <- worlddf_starts %>% 
+  group_by(location) %>% 
+  summarise(meanf = mean(value)) %>% 
+  filter(location != "91")
+```
+
+Make a plot of experimental design wrt the world
+
+```{r}
+#set palette
+pal1 <- wes_palette("Darjeeling1", 3)
+
+(worldplot <- ggplot() +
+  geom_line(data = worlddf_starts,
+            aes(x=step, y = value, group=location, color = location), 
+            size = 2) +
+  geom_segment(data = worldmeans,
+             aes(y = meanf, x = 0, yend = meanf, xend = 365, color = location),
+             size = 1.5, linetype = "twodash") +
+  scale_color_manual(values = pal1, name = "Model Latitude") +
+  xlab("Time Step") +
+  ylab("Available Resources") +
+  theme_minimal())
+```
+
+# Save Plots
+
+Save Figure 1
