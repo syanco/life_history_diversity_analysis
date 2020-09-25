@@ -73,12 +73,12 @@ modelparams_175 <- list(worldsize = 181,
 
 Make the seasonal world - uses model params object, but world will be identical across treatments
 ```{r}
-world_175 <- make_seasonalworld(modelparams_175, type = "sine", meanrange = c(0.7,0.85))
+world <- make_seasonalworld(modelparams_175, type = "sine", meanrange = c(0.7,0.85))
 ```
 
 Run model
 ```{r}
-totalresults_175 <- GAEMM(modelparams_175, world_175, lastonly = T)
+totalresults_175 <- GAEMM(modelparams_175, world, lastonly = T)
 ```
 
 ### Moderate Seasonality: Loc=133
@@ -106,14 +106,9 @@ modelparams_133 <- list(worldsize = 181,
                     fillfirst = T)
 ```
 
-Make the seasonal world - uses model params object, but world will be identical across treatments
-```{r}
-world_133 <- make_seasonalworld(modelparams_133, type = "sine", meanrange = c(0.7,0.85))
-```
-
 Run model
 ```{r}
-totalresults_133 <- GAEMM(modelparams_133, world_133, lastonly = T)
+totalresults_133 <- GAEMM(modelparams_133, world, lastonly = T)
 ```
 
 ### No Seasonality: Loc=91
@@ -141,14 +136,10 @@ modelparams_91 <- list(worldsize = 181,
                     fillfirst = T)
 ```
 
-Make the seasonal world - uses model params object, but world will be identical across treatments
-```{r}
-world_91 <- make_seasonalworld(modelparams_91, type = "sine", meanrange = c(0.7,0.85))
-```
 
 Run model
 ```{r}
-totalresults_91 <- GAEMM(modelparams_91, world_91, lastonly = T)
+totalresults_91 <- GAEMM(modelparams_91, world, lastonly = T)
 ```
 
 
@@ -185,14 +176,13 @@ filename <- paste0("../data/data_nomove_",Sys.Date(),".rdata")
 save(comb, 
      modelparams_91, modelparams_133, modelparams_175,
      totalresults_91, totalresults_133, totalresults_175,
-     world_91, world_133, world_175, 
+     world, 
      file = filename)
 ```
 
 Make df of world for plotting and reduce to only locations used
 ```{r}
-#uses world_175 but could use any since word params are identical across treatments
-worlddf <- melt(world_175, varnames = c("step", "location"))
+worlddf <- melt(world, varnames = c("step", "location"))
 
 #filter to only treatment locations
 worlddf_starts <- worlddf %>% 
@@ -370,7 +360,7 @@ names(clim_labs) <- c("A", "B", "C", "D", "E")
 
 deb_df_filt$climate_relev <- fct_relevel(deb_df_filt$climate, "E", "D", "C", "B", "A")
 
-(amp_g.kap <- ggplot(deb_df_filt, aes(y=g, x = kappa, color = climate)) +
+(amp_g.kap <- ggplot(deb_df_filt, aes(y=v, x = kappa, color = climate)) +
     geom_point(alpha = 0.5) +
     scale_color_manual(values = pal_5) +
     # scale_(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +

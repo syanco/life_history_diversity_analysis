@@ -1,0 +1,225 @@
+---
+title: "Constant Mean f GAEMM Runs"
+author: "Scott Yanco"
+date: "9/24/2020"
+output: pdf_document
+---
+
+# Initialization
+
+Load required libraries
+```{r messages = F}
+#data tools
+library(data.table)
+library(tidyverse)
+
+#plotting tools
+library(ggridges)
+library(wesanderson)
+library(reshape2)
+library(viridis)
+library(cowplot)
+library(ggthemes)
+```
+
+Required source code from GAEMM.  *IMPORTANT NOTE*: The paths in the chunk below are relative to my personal repository structure - the GAEMM repository must first be cloned from github (https://github.com/allipierce/GAEMM) and then the file paths below modified to wherever it's been downloaded.  Eventually GAEMM will be made into a package that cn be installed directly and loaded using the `library()` command.
+```{r}
+#source code for GAEMM 
+source("../../GAEMM/R/expendenergy.R")
+source("../../GAEMM/R/move.R")
+source("../../GAEMM/R/reproduce.R")
+source("../../GAEMM/R/randomizetraits.R")
+source("../../GAEMM/R/GAEMM.R")
+source("../../GAEMM/R/seasonalworld.R")
+source("../../GAEMM/R/results_functions.R")
+
+#source code for ggplot themes
+source("../../ggplot_theme_Publication-master/ggplot_theme_Publication-master/R/ggplot_theme_Publication.R")
+```
+
+
+# Theoretical Model with constant annual mean resource availability across latitudes (each latitude still expriences varying amplitudes of seasonality, but all have mean f = 0.7)
+
+## Model Runs
+
+### High Seasonality: Loc=175
+
+Set model parameters
+```{r}
+modelparams_175_cf <- list(worldsize = 181,
+                    popsize = 10000,
+                    steps = 365,
+                    generations = 500,
+                    g_max = 150,
+                    l_p = 0.7,
+                    kappa_min = 0.1,
+                    kappa_max = 0.9999,
+                    maxmoves = 45,
+                    e_traits = c("g", "kappa", "m"),
+                    startloc = 175,
+                    replacerate = 0.8,
+                    crossoverrate = 0.5,
+                    mutationrate = 0.1,
+                    selectiontype = "sus",
+                    worldedge = "stop",
+                    ncrosspoints = 2,
+                    movement = F,
+                    fillfirst = T)
+```
+
+Make the seasonal world - uses model params object, but world will be identical across treatments
+```{r}
+world <- make_seasonalworld(modelparams_175_cf, type = "sine", meanf = 0.7)
+```
+
+Run model
+```{r}
+totalresults_175_cf <- GAEMM(modelparams_175_cf, world, lastonly = T)
+```
+
+### Moderate Seasonality: Loc=133
+
+Set model parameters
+```{r}
+modelparams_133_cf <- list(worldsize = 181,
+                    popsize = 10000,
+                    steps = 365,
+                    generations = 500,
+                    g_max = 150,
+                    l_p = 0.7,
+                    kappa_min = 0.1,
+                    kappa_max = 0.9999,
+                    maxmoves = 45,
+                    e_traits = c("g", "kappa", "m"),
+                    startloc = 133,
+                    replacerate = 0.8,
+                    crossoverrate = 0.5,
+                    mutationrate = 0.1,
+                    selectiontype = "sus",
+                    worldedge = "stop",
+                    ncrosspoints = 2,
+                    movement = F,
+                    fillfirst = T)
+```
+
+Run model
+```{r}
+totalresults_133_cf <- GAEMM(modelparams_133_cf, world, lastonly = T)
+```
+
+### No Seasonality: Loc=91
+
+Set model parameters
+```{r}
+modelparams_91_cf <- list(worldsize = 181,
+                    popsize = 10000,
+                    steps = 365,
+                    generations = 500,
+                    g_max = 150,
+                    l_p = 0.7,
+                    kappa_min = 0.1,
+                    kappa_max = 0.9999,
+                    maxmoves = 45,
+                    e_traits = c("g", "kappa", "m"),
+                    startloc = 91,
+                    replacerate = 0.8,
+                    crossoverrate = 0.5,
+                    mutationrate = 0.1,
+                    selectiontype = "sus",
+                    worldedge = "stop",
+                    ncrosspoints = 2,
+                    movement = F,
+                    fillfirst = T)
+```
+
+
+Run model
+```{r}
+totalresults_91_cf <- GAEMM(modelparams_91_cf, world, lastonly = T)
+```
+
+
+## Process Data
+
+First filter raw model output to include only "alive" solutions and those that have been evaluated in at least one generation, also remove entirely identical solutions
+
+```{r}
+filt_175_cf <- totalresults_175_cf %>%
+  filter(alive == T & age > 1) %>% #remove dead and unevaluated solutions
+  distinct() #remove complete duplicated solutions
+
+filt_133_cf <- totalresults_133_cf %>%
+  filter(alive == T & age > 1) %>% #remove dead and unevaluated solutions
+  distinct() #remove complete duplicated solutions
+
+filt_91_cf <- totalresults_91_cf %>%
+  filter(alive == T & age > 1) %>% #remove dead and unevaluated solutions
+  distinct() #remove complete duplicated solutions
+```
+
+  
+Combine datasets into single df with start as a factor
+```{r}
+comb_cf <- rbind(filt_91_cf, filt_133_cf, filt_175_cf)
+comb_cf$startloc <- as.factor(comb_cf$startloc)
+```
+
+Save out data files - note the relative filepath outside the git repository - may need to be adjusted depending on needs/personal preferences.
+
+We save the filtered, combined object; unfiltered model results; parameterization objects; and, worlds.
+```{r}
+filename <- paste0("../data/data_nomove__cf",Sys.Date(),".rdata")
+save(comb_cf, 
+     modelparams_91_cf, modelparams_133_cf, modelparams_175_cf,
+     totalresults_91_cf, totalresults_133_cf, totalresults_175_cf,
+     world, 
+     file = filename)
+```
+
+Make df of world for plotting and reduce to only locations used
+```{r}
+worlddf_cf <- melt(world, varnames = c("step", "location"))
+
+#filter to only treatment locations
+worlddf_cf_starts <- worlddf_cf %>% 
+  filter(location==91|location==133|location==175)
+
+#convert starts to factor variable and reorder
+worlddf_cf_starts$location <- as.factor(worlddf_cf_starts$location)
+worlddf_cf_starts$location <- fct_relevel(worlddf_cf_starts$location, "91", "133", "175")
+```
+
+#Plotting and Analysis
+
+## Figure 1 - Experimental Design Heuristic
+
+Making a plot of the seasonal fluctuations in resources over time for each location treatment.
+
+First calculate annual mean resource levels for each location (except 91, since raw resources == mean resources).
+```{r}
+worldmeans_cf <- worlddf_cf_starts %>% 
+  group_by(location) %>% 
+  summarise(meanf = mean(value)) %>% 
+  filter(location != "91")
+```
+
+Make a plot of experimental design wrt the world
+
+```{r}
+#set palette
+pal_3 <- wes_palette("Darjeeling1", 3)
+
+(worldplot <- ggplot() +
+    geom_line(data = worlddf_cf_starts,
+              aes(x=step, y = value, group=location, color = location), 
+              size = 1.5) +
+    geom_segment(data = worldmeans_cf,
+                 aes(y = meanf, x = 0, yend = meanf, xend = 365, color = location),
+                 size = 1, linetype = "twodash") +
+    scale_color_manual(values = pal_3, name = "Model Latitude") +
+    ylim(c(0,1)) +
+    xlab("Time Step") +
+    ylab("Available Resources") +
+    theme_Publication() +
+    theme(legend.position = "none"))
+```
