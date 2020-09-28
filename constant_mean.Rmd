@@ -223,3 +223,37 @@ pal_3 <- wes_palette("Darjeeling1", 3)
     theme_Publication() +
     theme(legend.position = "none"))
 ```
+## Figure 2 - Model Results
+
+Make 2 panel plot of model results for kappa (somatic allocation fraction) and g (energy investment ratio)
+
+### Somatic allocation fraction (kappa) panel
+```{r}
+(plot_kappa_cf <- ggplot(comb_cf, aes(y=startloc, x = kappa, color = startloc)) +
+   geom_jitter(alpha = 0.7) +
+   # scale_fill_viridis(name = "Kappa") +
+   scale_color_manual(values = pal_3) + #use same palette as worldplot
+   scale_discrete_manual(aesthetics="point_color", values = pal_3) +
+   # geom_smooth(method = "lm") +
+   xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
+   ylab("Latitude") +
+   # scale_point_fill_hue(l = 70) +
+   theme_Publication()+
+   theme(legend.position = "none"))
+```
+### Energy investment ratio (g) panel
+```{r}
+(plot_g_cf <- ggplot(comb_cf, aes(y=startloc, x = g,color = startloc)) +
+  geom_jitter(alpha = 0.7) +
+  scale_color_manual(values = pal_3) +
+  scale_discrete_manual(aesthetics="point_color", values = pal_3) +
+  xlab(expression(paste("Energy Investment Ratio (", g, ")"))) +
+  ylab("Latitude") +
+  theme_Publication()+
+  theme(legend.position = "none"))
+```
+### Combine into single panel
+
+```{r}
+(fig2_comb_cf <- plot_grid(plot_kappa_cf, plot_g_cf, labels = c("A", "B"), ncol = 1))
+```

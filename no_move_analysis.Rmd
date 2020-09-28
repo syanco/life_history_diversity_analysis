@@ -230,7 +230,7 @@ deb_df <- data.frame(model = unlist(lapply(splist, getPar, par ="model", deb_dat
 Filter data:  remove marine species, use chordata only, only the 'std' DEB model with completeness >=2.
 ```{r}
 deb_df_filt <- deb_df %>%
-  filter(climate != "M" & model == "std" & complete >= 2 & phylum == "Chordata")
+  filter(climate != "M" & model == "std" &complete >= 2 & phylum == "Chordata")
 ```
 
 
@@ -311,6 +311,7 @@ Set 5 color palette.
 pal_5 <- wes_palette("Darjeeling1", 5)
 ```
 
+
 Three panel figure including kappa, g, and v.
 
 ### Somatic Allocation fraction (kappa) panel
@@ -352,7 +353,7 @@ Three panel figure including kappa, g, and v.
   theme(legend.position = "none"))
 ```
 
-### Energy investment ratio (g) by kappa panel
+### Energy conductance (v) by kappa panel
 
 ```{r}
 clim_labs <- c("Tropical", "Dry", "Temperate", "Boreal", "Polar")
@@ -365,7 +366,7 @@ deb_df_filt$climate_relev <- fct_relevel(deb_df_filt$climate, "E", "D", "C", "B"
     scale_color_manual(values = pal_5) +
     # scale_(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
     xlab(expression(paste(kappa))) +
-    ylab(expression(paste("Energy Investment Ratio (g)"))) +
+    ylab(expression(paste("Energy Conductance (", italic(dot(v)), ")"))) +
     theme_Publication() +
     theme(legend.position = "none") +
     facet_wrap(~climate_relev, ncol = 1, labeller = labeller(climate_relev = clim_labs)))
@@ -375,6 +376,21 @@ deb_df_filt$climate_relev <- fct_relevel(deb_df_filt$climate, "E", "D", "C", "B"
 ```{r}
 fig3_left <- plot_grid(amp_kap, amp_g, amp_v, labels = "AUTO", ncol = 1)
 (fig3_comb <- plot_grid(fig3_left, amp_g.kap, labels = c("", "D"), ncol = 2, rel_widths = c(2,1)))
+```
+
+##Figure 4 - Kappa*v by climate
+
+Plot of kappa*v by climate ("scaled POL")
+
+```{r}
+(amp_kap_v<- ggplot(deb_df_filt, aes(y=climate, x = kappa/v, color = climate)) +
+  geom_jitter(alpha = 0.5) +
+  scale_color_manual(values = pal_5) +
+  scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
+  xlab(expression(kappa/italic(dot(v)))) +
+  ylab("Climate") +
+  theme_Publication() +
+  theme(legend.position = "none"))
 ```
 
 # Save Plots
@@ -404,5 +420,39 @@ ggsave("../figures/fig-3_AmP.pdf", fig3_comb, width = 7, height = 7)
 
 #as png
 ggsave("../figures/fig-3_AmP.png", fig3_comb, width = 7, height = 7)
+```
+
+Save Figure 4
+```{r}
+#as pdf
+ggsave("../figures/fig-4_AmP_kap-v.pdf", amp_kap_v, width = 5, height = 5)
+
+#as png
+ggsave("../figures/fig-4_AmP_kap-v.png", amp_kap_v, width = 5, height = 5)
+```
+# Descriptive Stats
+
+## World Means
+
+```{r}
+worlddf_starts %>% 
+  group_by(location) %>% 
+  summarise(meanf = mean(value), min = min(value), max = max(value))
+```
+
+
+## Max kappa by lat
+
+```{r}
+print(paste0("Start = 91: ", max(comb$kappa[comb$startloc == "91"])))
+print(paste0("Start = 133: ", max(comb$kappa[comb$startloc == "133"])))
+print(paste0("Start = 175: ", max(comb$kappa[comb$startloc == "175"])))
+```
+## Min kappa by lat
+
+```{r}
+print(paste0("Start = 91: ", min(comb$kappa[comb$startloc == "91"])))
+print(paste0("Start = 133: ", min(comb$kappa[comb$startloc == "133"])))
+print(paste0("Start = 175: ", min(comb$kappa[comb$startloc == "175"])))
 ```
 
