@@ -47,12 +47,6 @@ debsim <- function(modelparams, klow = 0.01, khigh = 0.999, glow = 0.01, ghigh =
   return(debdata)
 }
 
-
-track <- debdata[391,]
-for (i in 1:modelparams$steps) {
-  track[i+1,] <- rundeb(debdata, i, world)[391,]
-}
-
 #set parameters for simulations
 modelparams <- list(worldsize = 181,
                     steps = 365,
