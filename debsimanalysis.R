@@ -1,6 +1,8 @@
 source("../GAEMM/R/seasonalworld.R")
 source("debsim.R")
 
+library(tidyverse)
+
 
 plotworld <- function(world){
   worlddata <- as.data.frame(world)
@@ -106,7 +108,7 @@ debdata %>%
   filter(l == max(l))
 
 
-#generate world of f values - higher amplitude
+#generate world of f values - higher amplitude, wider range in meanf
 world <- make_seasonalworld(modelparams, type = "sine", meanrange = c(0.5,0.85))
 plotworld(world)
 
@@ -207,7 +209,7 @@ debdatacm %>%
   xlim(c(0,1)) +
   theme_classic()
 
-debdatahm %>%
+debdatacm %>%
   filter(alive == T) %>%
   ggplot() + geom_line(aes(x = kappa, y = reserves, color = g, group = g), alpha = 0.5) +
   scale_color_viridis_c() +
@@ -215,7 +217,7 @@ debdatahm %>%
   xlim(c(0,1)) +
   theme_classic()
 
-debdata %>%
+debdatacm %>%
   filter(alive == T) %>%
   ggplot() + geom_line(aes(x = kappa, y = repro_reserves/reserves, color = g, group = g), alpha = 0.5) +
   scale_color_viridis_c() +
