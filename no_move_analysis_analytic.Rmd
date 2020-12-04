@@ -21,6 +21,7 @@ library(reshape2)
 library(viridis)
 library(cowplot)
 library(ggthemes)
+
 ```
 
 Required source code from GAEMM.  *IMPORTANT NOTE*: The paths in the chunk below are relative to my personal repository structure - the GAEMM repository must first be cloned from github (https://github.com/allipierce/GAEMM) and then the file paths below modified to wherever it's been downloaded.  Eventually GAEMM will be made into a package that cn be installed directly and loaded using the `library()` command.
@@ -228,7 +229,8 @@ deb_df <- data.frame(model = unlist(lapply(splist, getPar, par ="model", deb_dat
 Filter data:  remove marine species, use chordata only, only the 'std' DEB model with completeness >=2.
 ```{r}
 deb_df_filt <- deb_df %>%
-  filter(climate != "M" & model == "std" &complete >= 2 & phylum == "Chordata")
+  filter(climate != "M" & complete >= 2) %>% 
+  filter(class == "Mammalia" | class == "Aves" | class == "Reptilia")
 ```
 
 
@@ -277,7 +279,8 @@ pal_3 <- wes_palette("Darjeeling1", 3)
 
 ```{r}
 (kap_rp <- ggplot(comb) + geom_line(aes(x = kappa, y = repro_reserves, color = g, group = g), alpha = 0.5) +
-   scale_color_viridis_c(name = expression(atop(atop("Energy", "Investment"), atop("Ratio (g)", "",)))) +
+   scale_color_viridis_c(name = expression(atop(atop("Energy", "Investment"), atop("Ratio (g)", "",))),
+                         option = "inferno", direction = -1, end = 0.8) +
    
    facet_wrap(~startloc, ncol = 1, labeller = labeller(startloc = lat_labs)) +
    xlim(c(0,1)) +
@@ -603,7 +606,8 @@ Combine panels:
    geom_line(aes(x = kappa, y = repro_reserves, color = g, group = g), 
              alpha = 0.5) +
    scale_color_viridis_c(name = expression(atop(atop("Energy", "Investment"),
-                                                atop("Ratio (g)", "",)))) +
+                                                atop("Ratio (g)", "",))),
+                         option = "inferno", direction = -1, end = 0.8) +
    facet_wrap(~startloc, ncol = 1, labeller = labeller(startloc = lat_labs)) +
    xlim(c(0,1)) +
    xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
