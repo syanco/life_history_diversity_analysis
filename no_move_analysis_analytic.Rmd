@@ -218,7 +218,8 @@ deb_df <- data.frame(model = unlist(lapply(splist, getPar, par ="model", deb_dat
                      phylum = unlist(lapply(splist, getPar, par ="phylum", deb_data = deb)), #taxonomic phylum
                      mig = unlist(lapply(eco, getMig)), #migratory status
                      max_l = unlist(lapply(splist, getPar, par ="L.m", deb_data = deb)), #max length
-                     E_0 = unlist(lapply(splist, getPar, par ="E.0", deb_data = deb)), #embryo cost
+                     Em = unlist(lapply(splist, getPar, par ="E.m", deb_data = deb)), #max reserve
+                     pM = unlist(lapply(splist, getPar, par ="p.M", deb_data = deb)), #somatic maint
                      z = unlist(lapply(splist, getPar, par ="z", deb_data = deb)), #zoom factor
                      kappa = unlist(lapply(splist, getPar, par = "kap", deb_data = deb)), #somatic allocation fraction (kappa)
                      k = unlist(lapply(splist, getPar, par ="k", deb_data = deb)), #maintenance ratio (k)
@@ -302,28 +303,41 @@ Three panel figure including kappa, g, and v.
 
 ### Somatic Allocation fraction (kappa) panel
 
+Plot of kappa/Em by climate ("scaled POL")
+
 ```{r}
-(amp_kap <- ggplot(deb_df_filt, aes(y=climate, x = kappa, color = climate)) +
+(amp_kap_E<- ggplot(deb_df_filt, aes(y=climate, x = (pM/Em), color = climate)) +
    geom_jitter(alpha = 0.5) +
    scale_color_manual(values = pal_5) +
    scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
-   xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
-   ylab("") +
+   xlab(expression(kappa[scaled])) +
+   ylab("Climate") +
    theme_Publication() +
    theme(legend.position = "none"))
+```
+
+```{r}
+# (amp_kap <- ggplot(deb_df_filt, aes(y=climate, x = kappa, color = climate)) +
+#    geom_jitter(alpha = 0.5) +
+#    scale_color_manual(values = pal_5) +
+#    scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
+#    xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
+#    ylab("") +
+#    theme_Publication() +
+#    theme(legend.position = "none"))
 ```
 
 ### Energy conductance (v) panel
 
 ```{r}
-(amp_v <- ggplot(deb_df_filt, aes(y=climate, x = v, color = climate)) +
-   geom_jitter(alpha = 0.5) +
-   scale_color_manual(values = pal_5) +
-   scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
-   xlab(expression(paste("Energy Conductance (", italic(dot(v)), ")"))) +
-   ylab("") +
-   theme_Publication() +
-   theme(legend.position = "none"))
+# (amp_v <- ggplot(deb_df_filt, aes(y=climate, x = v, color = climate)) +
+#    geom_jitter(alpha = 0.5) +
+#    scale_color_manual(values = pal_5) +
+#    scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
+#    # xlab(expression(paste("Energy Conductance (", italic(dot(v)), ")"))) +
+#    ylab("") +
+#    theme_Publication() +
+#    theme(legend.position = "none"))
 ```
 
 ### Energy investment ratio (g) panel
@@ -342,42 +356,30 @@ Three panel figure including kappa, g, and v.
 ### Energy conductance (v) by kappa panel
 
 ```{r}
-clim_labs <- c("Tropical", "Dry", "Temperate", "Boreal", "Polar")
-names(clim_labs) <- c("A", "B", "C", "D", "E")
-
-deb_df_filt$climate_relev <- fct_relevel(deb_df_filt$climate, "E", "D", "C", "B", "A")
-
-(amp_g.kap <- ggplot(deb_df_filt, aes(y=v, x = kappa, color = climate)) +
-    geom_point(alpha = 0.5) +
-    scale_color_manual(values = pal_5) +
-    # scale_(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
-    xlab(expression(paste(kappa))) +
-    ylab(expression(paste("Energy Conductance (", italic(dot(v)), ")"))) +
-    theme_Publication() +
-    theme(legend.position = "none") +
-    facet_wrap(~climate_relev, ncol = 1, labeller = labeller(climate_relev = clim_labs)))
+# clim_labs <- c("Tropical", "Dry", "Temperate", "Boreal", "Polar")
+# names(clim_labs) <- c("A", "B", "C", "D", "E")
+# 
+# deb_df_filt$climate_relev <- fct_relevel(deb_df_filt$climate, "E", "D", "C", "B", "A")
+# 
+# (amp_g.kap <- ggplot(deb_df_filt, aes(y=v, x = kappa, color = climate)) +
+#     geom_point(alpha = 0.5) +
+#     scale_color_manual(values = pal_5) +
+#     # scale_(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
+#     xlab(expression(paste(kappa))) +
+#     ylab(expression(paste("Energy Conductance (", italic(dot(v)), ")"))) +
+#     theme_Publication() +
+#     theme(legend.position = "none") +
+#     facet_wrap(~climate_relev, ncol = 1, labeller = labeller(climate_relev = clim_labs)))
 ```
 
 ###Combine
 ```{r}
-fig3_left <- plot_grid(amp_kap, amp_g, amp_v, labels = "AUTO", ncol = 1)
-(fig3_comb <- plot_grid(fig3_left, amp_g.kap, labels = c("", "D"), ncol = 2, rel_widths = c(2,1)))
+(fig3 <- plot_grid(amp_kap_E, amp_g, labels = "AUTO", ncol = 1))
+# (fig3_comb <- plot_grid(fig3_left, amp_g.kap, labels = c("", "D"), ncol = 2, rel_widths = c(2,1)))
 ```
 
 ##Figure 4 - Kappa*v by climate
 
-Plot of kappa*v by climate ("scaled POL")
-
-```{r}
-(amp_kap_v<- ggplot(deb_df_filt, aes(y=climate, x = kappa/v, color = climate)) +
-   geom_jitter(alpha = 0.5) +
-   scale_color_manual(values = pal_5) +
-   scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
-   xlab(expression(kappa/italic(dot(v)))) +
-   ylab("Climate") +
-   theme_Publication() +
-   theme(legend.position = "none"))
-```
 
 # Save Plots
 
@@ -402,19 +404,19 @@ ggsave("../figures/fig-2_model.png", kap_rp, width = 7, height = 6)
 Save Figure 3
 ```{r}
 #as pdf
-ggsave("../figures/fig-3_AmP.pdf", fig3_comb, width = 7, height = 7)
+ggsave("../figures/fig-3_AmP.pdf", fig3_left, width = 7, height = 7)
 
 #as png
-ggsave("../figures/fig-3_AmP.png", fig3_comb, width = 7, height = 7)
+ggsave("../figures/fig-3_AmP.png", fig3_left, width = 7, height = 7)
 ```
 
 Save Figure 4
 ```{r}
-#as pdf
-ggsave("../figures/fig-4_AmP_kap-v.pdf", amp_kap_v, width = 5, height = 5)
-
-#as png
-ggsave("../figures/fig-4_AmP_kap-v.png", amp_kap_v, width = 5, height = 5)
+# #as pdf
+# ggsave("../figures/fig-4_AmP_kap-v.pdf", amp_kap_v, width = 5, height = 5)
+# 
+# #as png
+# ggsave("../figures/fig-4_AmP_kap-v.png", amp_kap_v, width = 5, height = 5)
 ```
 # Descriptive Stats
 
