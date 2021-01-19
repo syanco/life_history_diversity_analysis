@@ -199,23 +199,20 @@ First calculate annual mean resource levels for each location (except 91, since 
 ```{r}
 worldmeans_cf <- worlddf_cf_starts %>% 
   group_by(location) %>% 
-  summarise(meanf = mean(value)) %>% 
-  filter(location != "91")
+  summarise(meanf = mean(value))
 ```
 
 Make a plot of experimental design wrt the world
 
+### Seasonal Curve panel
 ```{r}
 #set palette
 pal_3 <- wes_palette("Darjeeling1", 3)
 
-(worldplot <- ggplot() +
+(worldplot_cf <- ggplot() +
     geom_line(data = worlddf_cf_starts,
               aes(x=step, y = value, group=location, color = location), 
               size = 1.5) +
-    geom_segment(data = worldmeans_cf,
-                 aes(y = meanf, x = 0, yend = meanf, xend = 365, color = location),
-                 size = 1, linetype = "twodash") +
     scale_color_manual(values = pal_3, name = "Model Latitude") +
     ylim(c(0,1)) +
     xlab("Time Step") +
@@ -223,6 +220,28 @@ pal_3 <- wes_palette("Darjeeling1", 3)
     theme_Publication() +
     theme(legend.position = "none"))
 ```
+
+### Annual mean panel
+```{r}
+(worldmean_cf <- ggplot() +
+   geom_segment(data = worldmeans_cf,
+                aes(y = meanf, x = 0, yend = meanf, xend = 365, color = location),
+                size = 1, linetype = "twodash") +
+   scale_color_manual(values = pal_3, name = "Model Latitude") +
+   ylim(c(0,1)) +
+   xlab("Time Step") +
+   ylab("Available Resources") +
+   theme_Publication() +
+   theme(legend.position = "none") +
+   facet_wrap(~location, ncol = 1))
+```
+
+### Combine into single panel
+
+```{r}
+(figE1_comb_cf <- plot_grid(worldplot_cf, worldmean_cf, labels = c("A", "B"), ncol = 2, rel_widths = c(2,1)))
+```
+
 ## Figure 2 - Model Results
 
 Make 2 panel plot of model results for kappa (somatic allocation fraction) and g (energy investment ratio)
@@ -256,4 +275,25 @@ Make 2 panel plot of model results for kappa (somatic allocation fraction) and g
 
 ```{r}
 (fig2_comb_cf <- plot_grid(plot_kappa_cf, plot_g_cf, labels = c("A", "B"), ncol = 1))
+```
+
+
+# Save Plots
+
+Save Figure 1
+```{r}
+#as pdf
+ggsave("../figures/fig-E1_seasons.pdf", figE1_comb_cf, width = 7, height = 4)
+
+#as png
+ggsave("../figures/fig-E1_seasons.png", figE1_comb_cf, width = 7, height = 4)
+```
+
+Save Figure 2
+```{r}
+#as pdf
+ggsave("../figures/fig-E2_model.pdf", fig2_comb_cf, width = 7, height = 6)
+
+#as png
+ggsave("../figures/fig-E2_model.png", fig2_comb_cf, width = 7, height = 6)
 ```
