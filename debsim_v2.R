@@ -74,10 +74,11 @@ rundeb <- function(data, t, world, modelparams){
   #check for starvation p_g < 0 - pull from repro_buffer and adjust reserve calc
   if(p_g < 0){
     p_repro <- p_repro + p_g
-    er <- ifelse(abs(p_repro) < er, er + p_repro, 0)
-    p_c <- p_s
+    er <- er + p_repro
+    p_c <- ifelse(er < 0, p_s + er, p_s)
     de <- 1/l^3 * ( p_a - p_c)
   }
+  
   p_c <- p_s + p_g + p_repro
   de <- 1/l^3 * ( p_a - p_c - (e/(g*kappa) * p_g))
   e <- e + de
