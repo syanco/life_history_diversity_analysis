@@ -31,7 +31,7 @@ debsim <- function(modelparams, klow = 0.01, khigh = 0.999, glow = 0.01, ghigh =
   #kappa_combo$g <- kappa_combo$EgEmrat / kappa_combo$kappa
   
   #create initial data.frame    
-  debparms <- data.frame(kappa = kappa_combo$kappa,
+  debdata <- data.frame(kappa = kappa_combo$kappa,
                         g = kappa_combo$g,
                         reserves = world[1, modelparams$startloc],
                         repro_reserves = 0,
@@ -41,23 +41,54 @@ debsim <- function(modelparams, klow = 0.01, khigh = 0.999, glow = 0.01, ghigh =
                         loc = modelparams$startloc,
                         alive = T)
   
-  datalist <- list()
   #run steps for each parameter set
-  for (i in 1:nrow(debparms)) {
-    debdata <- debparms[i,]
-    debdata$step <- 0
-    for (j in 1:modelparams$steps) {
-      if(any(debdata$alive == F)) break
-      debdata[j+1,] <- rundeb(debparms[i,], j, world)
-      debdata$step[j+1] <- j
-    }
-    datalist[[i]] <- debdata 
+  for (i in 1:modelparams$steps) {
+    debdata <- rundeb(debdata, i, world)
   }
   
-  data <- bind_rows(datalist)
   #return dataframe of values
-  return(data)
+  return(debdata)
 }
+
+# debsim <- function(modelparams, klow = 0.01, khigh = 0.999, glow = 0.01, ghigh = 5){
+#   
+#   kappa <- seq(klow, khigh, by = 0.01)
+#   g <- seq(glow, ghigh, by = 0.1)
+#   #EgEmrat <- seq(ratlow, rathigh, by = 0.01)
+#   
+#   #generate combinations of all kappas and gs
+#   #kappa_combo <- expand.grid(kappa = kappa, EgEmrat = EgEmrat)
+#   kappa_combo <- expand.grid(kappa = kappa, g = g)
+#   #kappa_combo$g <- kappa_combo$EgEmrat / kappa_combo$kappa
+#   
+#   #create initial data.frame    
+#   debparms <- data.frame(kappa = kappa_combo$kappa,
+#                         g = kappa_combo$g,
+#                         reserves = world[1, modelparams$startloc],
+#                         repro_reserves = 0,
+#                         l = modelparams$l_p,
+#                         l_p = modelparams$l_p,
+#                         startloc = modelparams$startloc,
+#                         loc = modelparams$startloc,
+#                         alive = T)
+#   
+#   datalist <- list()
+#   #run steps for each parameter set
+#   for (i in 1:nrow(debparms)) {
+#     debdata <- debparms[i,]
+#     debdata$step <- 0
+#     for (j in 1:modelparams$steps) {
+#       if(any(debdata$alive == F)) break
+#       debdata[j+1,] <- rundeb(debparms[i,], j, world)
+#       debdata$step[j+1] <- j
+#     }
+#     datalist[[i]] <- debdata 
+#   }
+#   
+#   data <- bind_rows(datalist)
+#   #return dataframe of values
+#   return(data)
+# }
 
 #set parameters for simulations
 modelparams <- list(worldsize = 181,
@@ -78,7 +109,23 @@ debdata_133 <- debsim(modelparams)
 modelparams$startloc <- 91
 debdata_91 <- debsim(modelparams)
 
-#debdata <- bind_rows(debdata_175, debdata_133, debdata_91)
+debdata <- bind_rows(debdata_175, debdata_133, debdata_91)
+
+debdata %>%
+  filter(alive == T & repro_reserves > 0) %>%
+  ggplot() + geom_line(aes(x = kappa, y = repro_reserves, color = g, group = g), alpha = 0.5) +
+  scale_color_viridis_c() +
+  facet_grid(startloc ~ .) +
+  xlim(c(0,1)) +
+  theme_classic()
+
+debdata %>%
+  filter(alive == T) %>%
+  ggplot() + geom_line(aes(x = kappa, y = reserves, color = g, group = g), alpha = 0.5) +
+  scale_color_viridis_c() +
+  facet_grid(startloc ~ .) +
+  xlim(c(0,1)) +
+  theme_classic()
 
 debdata_175 %>%
   filter(step == 365) %>%
