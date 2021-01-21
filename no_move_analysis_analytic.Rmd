@@ -21,6 +21,7 @@ library(reshape2)
 library(viridis)
 library(cowplot)
 library(ggthemes)
+library(gridExtra)
 
 ```
 
@@ -271,7 +272,7 @@ pal_3 <- wes_palette("Darjeeling1", 3)
     scale_color_manual(values = pal_3, name = "Model Latitude") +
     ylim(c(0,1)) +
     xlab("Time Step") +
-    ylab("Available Resources") +
+    ylab(expression(paste("Available Resources (", italic("f"), ")"))) +
     theme_Publication() +
     theme(legend.position = "none"))
 ```
@@ -286,7 +287,7 @@ pal_3 <- wes_palette("Darjeeling1", 3)
    facet_wrap(~startloc, ncol = 1, labeller = labeller(startloc = lat_labs)) +
    xlim(c(0,1)) +
    xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
-   ylab("Reproductive Potential") +
+   ylab(expression(paste("Reproductive Potential (", e[R], ")"))) +
    theme_few())
 ```
 
@@ -306,76 +307,45 @@ Three panel figure including kappa, g, and v.
 Plot of kappa/Em by climate ("scaled POL")
 
 ```{r}
-(amp_kap_E<- ggplot(deb_df_filt, aes(y=climate, x = (pM/Em), color = climate)) +
+amp_kap_E<- ggplot(deb_df_filt, aes(y=climate, x = (pM/Em), color = climate)) +
    geom_jitter(alpha = 0.5) +
    scale_color_manual(values = pal_5) +
    scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
    xlab(expression(kappa[scaled])) +
-   ylab("Climate") +
+   ylab("") +
    theme_Publication() +
-   theme(legend.position = "none"))
+   theme(legend.position = "none")
+# alab <- textGrob("A", gp=gpar(fontface="bold", col="black", fontsize=15),
+#                  x = 0, hjust = -2)
+# (amp_kap_E <- grid.arrange(arrangeGrob(amp_kap_E, top = alab)))
 ```
 
-```{r}
-# (amp_kap <- ggplot(deb_df_filt, aes(y=climate, x = kappa, color = climate)) +
-#    geom_jitter(alpha = 0.5) +
-#    scale_color_manual(values = pal_5) +
-#    scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
-#    xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
-#    ylab("") +
-#    theme_Publication() +
-#    theme(legend.position = "none"))
-```
-
-### Energy conductance (v) panel
-
-```{r}
-# (amp_v <- ggplot(deb_df_filt, aes(y=climate, x = v, color = climate)) +
-#    geom_jitter(alpha = 0.5) +
-#    scale_color_manual(values = pal_5) +
-#    scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
-#    # xlab(expression(paste("Energy Conductance (", italic(dot(v)), ")"))) +
-#    ylab("") +
-#    theme_Publication() +
-#    theme(legend.position = "none"))
-```
 
 ### Energy investment ratio (g) panel
 
 ```{r}
-(amp_g <- ggplot(deb_df_filt, aes(y=climate, x = g, color = climate)) +
+amp_g <- ggplot(deb_df_filt, aes(y=climate, x = g, color = climate)) +
    geom_jitter(alpha = 0.5) +
    scale_color_manual(values = pal_5) +
    scale_y_discrete(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
    xlab(expression(paste("Energy Investment Ratio (g)"))) +
    ylab("") +
    theme_Publication() +
-   theme(legend.position = "none"))
+   theme(legend.position = "none")
+# blab <- textGrob("B", gp=gpar(fontface="bold", col="black", fontsize=15),
+#                  x = 0, hjust = -2)
+# (amp_g <- grid.arrange(arrangeGrob(amp_g, top = blab)))
 ```
 
-### Energy conductance (v) by kappa panel
-
-```{r}
-# clim_labs <- c("Tropical", "Dry", "Temperate", "Boreal", "Polar")
-# names(clim_labs) <- c("A", "B", "C", "D", "E")
-# 
-# deb_df_filt$climate_relev <- fct_relevel(deb_df_filt$climate, "E", "D", "C", "B", "A")
-# 
-# (amp_g.kap <- ggplot(deb_df_filt, aes(y=v, x = kappa, color = climate)) +
-#     geom_point(alpha = 0.5) +
-#     scale_color_manual(values = pal_5) +
-#     # scale_(labels = c("Tropical", "Dry", "Temperate", "Boreal", "Polar")) +
-#     xlab(expression(paste(kappa))) +
-#     ylab(expression(paste("Energy Conductance (", italic(dot(v)), ")"))) +
-#     theme_Publication() +
-#     theme(legend.position = "none") +
-#     facet_wrap(~climate_relev, ncol = 1, labeller = labeller(climate_relev = clim_labs)))
-```
 
 ###Combine
 ```{r}
-(fig3 <- plot_grid(amp_kap_E, amp_g, labels = "AUTO", ncol = 1))
-# (fig3_comb <- plot_grid(fig3_left, amp_g.kap, labels = c("", "D"), ncol = 2, rel_widths = c(2,1)))
+(fig_3 <- plot_grid(amp_kap_E, amp_g, labels = "AUTO", ncol = 1))
+
+# y.grob <- textGrob("Climate", 
+#                    gp=gpar(fontface="bold", col="black", fontsize=15), rot=90)
+# 
+# (fig_3 <- grid.arrange(arrangeGrob(plots_3, left = y.grob)))
 ```
 
 ##Figure 4 - Kappa*v by climate
@@ -404,10 +374,10 @@ ggsave("../figures/fig-2_model.png", kap_rp, width = 7, height = 6)
 Save Figure 3
 ```{r}
 #as pdf
-ggsave("../figures/fig-3_AmP.pdf", fig3_left, width = 7, height = 7)
+ggsave("../figures/fig-3_AmP.pdf", fig_3, width = 7, height = 7)
 
 #as png
-ggsave("../figures/fig-3_AmP.png", fig3_left, width = 7, height = 7)
+ggsave("../figures/fig-3_AmP.png", fig_3, width = 7, height = 7)
 ```
 
 Save Figure 4
@@ -613,7 +583,7 @@ Combine panels:
    facet_wrap(~startloc, ncol = 1, labeller = labeller(startloc = lat_labs)) +
    xlim(c(0,1)) +
    xlab(expression(paste("Somatic Allocation Fraction (", kappa, ")"))) +
-   ylab("Reproductive Potential") +
+   ylab(expression(paste("Reproductive Potential (", e[R], ")"))) +
    theme_few())
 ```
 
