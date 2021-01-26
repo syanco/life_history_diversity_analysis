@@ -37,7 +37,7 @@ source("../../GAEMM/R/seasonalworld.R")
 # source("../../GAEMM/R/results_functions.R")
 
 #source code for analytic version of DEB model
-source("debsim.R")
+source("debsim_v3.R")
 
 #source code for ggplot themes
 source("../../ggplot_theme_Publication-master/ggplot_theme_Publication-master/R/ggplot_theme_Publication.R")
@@ -165,6 +165,7 @@ First filter raw model output to include only "alive" solutions and those that h
 ```{r}
 comb <- comb %>%
   filter(alive == T) %>% #remove dead 
+  filter(repro_reserves > 0) %>%  #remove solutions that don't reproduce
   distinct() #remove complete duplicated solutions
 ```
 
@@ -420,7 +421,7 @@ print(paste0("Start = 175: ", min(comb$kappa[comb$startloc == "175"])))
 comb %>% 
   group_by(startloc) %>% 
   filter(repro_reserves == max(repro_reserves)) %>% 
-  select(startloc, kappa, g, repro_reserves)
+  select(startloc, kappa, g, repro_reserves, l, reserves)
 ```
 
 # Constant mean f runs
