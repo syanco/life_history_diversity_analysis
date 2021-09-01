@@ -1,5 +1,5 @@
 library(R.matlab)
-allStat <- readMat("~/Downloads/AmPdata/allStat.mat")
+allStat <- readMat("../data/AmPdata/allStat.mat")
 source("../life_history_diversity_analysis/AmP_functions.R")
 
 ###NEW AMP FUNCTIONS
@@ -118,6 +118,7 @@ POLarrow <-
 
 
 POLarrow
+
 ## scaled kappa
 kapscaledplot <-
 deb_df %>%
@@ -137,7 +138,7 @@ deb_df %>%
 
 gplot <-
 deb_df %>%
-  filter(mig != "short-distance" | mig != "long-distance") %>%
+  # filter(mig != "short-distance" | mig != "long-distance") %>%
   ggplot() +
   geom_jitter(aes(y = climate, x = g, color = climate), alpha = 0.7) +
   scale_color_manual(values = pal_5) +
